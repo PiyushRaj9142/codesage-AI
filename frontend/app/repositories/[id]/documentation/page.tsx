@@ -34,7 +34,12 @@ export default function DocumentationGeneratorPage({ params }: { params: Promise
       router.push("/login");
       return;
     }
-    api.getRepository(repoId).then(setRepository).catch(() => {});
+    api.getRepository(repoId).then((r) => {
+      setRepository(r);
+      if (typeof window !== "undefined" && r?.id) {
+        localStorage.setItem("codesage_active_repo_id", r.id);
+      }
+    }).catch(() => {});
   }, [repoId, router]);
 
   const handleGenerate = async () => {

@@ -39,7 +39,12 @@ export default function BugInvestigationPage({ params }: { params: Promise<{ id:
       router.push("/login");
       return;
     }
-    api.getRepository(repoId).then(setRepository).catch(() => {});
+    api.getRepository(repoId).then((r) => {
+      setRepository(r);
+      if (typeof window !== "undefined" && r?.id) {
+        localStorage.setItem("codesage_active_repo_id", r.id);
+      }
+    }).catch(() => {});
   }, [repoId, router]);
 
   const handleInvestigate = async (e: React.FormEvent) => {

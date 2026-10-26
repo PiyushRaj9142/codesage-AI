@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,7 +13,7 @@ import {
   Split,
   FileText,
   BarChart3,
-  Settings,
+  Settings as SettingsIcon,
   LogOut,
   Code2,
   ChevronRight,
@@ -29,12 +29,26 @@ export function Sidebar({ currentRepoId }: SidebarProps) {
   const router = useRouter();
   const user = getCurrentUser();
 
+  const [storedRepoId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("codesage_active_repo_id");
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (currentRepoId && typeof window !== "undefined") {
+      localStorage.setItem("codesage_active_repo_id", currentRepoId);
+    }
+  }, [currentRepoId]);
+
   const handleLogout = () => {
     clearAuth();
     router.push("/login");
   };
 
-  const repoBase = currentRepoId ? `/repositories/${currentRepoId}` : "/repositories";
+  const effectiveRepoId = currentRepoId || storedRepoId;
+  const repoBase = effectiveRepoId ? `/repositories/${effectiveRepoId}` : "/repositories";
 
   const navigation = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -46,12 +60,16 @@ export function Sidebar({ currentRepoId }: SidebarProps) {
     { name: "Change Impact Analysis", href: `${repoBase}/impact`, icon: Split, requiresRepo: true },
     { name: "Documentation Generator", href: `${repoBase}/documentation`, icon: FileText, requiresRepo: true },
     { name: "RAG Evaluation", href: `${repoBase}/evaluations`, icon: BarChart3, requiresRepo: true },
+    { name: "Settings", href: "/settings", icon: SettingsIcon },
   ];
 
   return (
     <aside className="w-64 bg-white border-r border-[#E2E8F0] flex flex-col h-screen select-none shrink-0">
       {/* Brand Header */}
-      <div className="h-16 flex items-center px-6 border-b border-[#E2E8F0] gap-3">
+      <Link
+        href="/dashboard"
+        className="h-16 flex items-center px-6 border-b border-[#E2E8F0] gap-3 hover:bg-[#F8FAFC] transition-colors"
+      >
         <div className="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center text-white shadow-sm">
           <Code2 className="w-5 h-5" />
         </div>
@@ -63,7 +81,7 @@ export function Sidebar({ currentRepoId }: SidebarProps) {
             Hybrid RAG v1.0
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Nav List */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
@@ -112,7 +130,7 @@ export function Sidebar({ currentRepoId }: SidebarProps) {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-1.5 text-[#64748B] hover:text-[#B91C1C] hover:bg-[#F1F5F9] rounded-md transition-colors"
+            className="p-1.5 text-[#64748B] hover:text-[#B91C1C] hover:bg-[#F1F5F9] rounded-md transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>

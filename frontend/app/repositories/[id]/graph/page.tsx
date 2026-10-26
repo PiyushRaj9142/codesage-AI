@@ -29,6 +29,9 @@ export default function ArchitectureExplorerPage({ params }: { params: Promise<{
       try {
         const repo = await api.getRepository(repoId);
         setRepository(repo);
+        if (typeof window !== "undefined" && repo?.id) {
+          localStorage.setItem("codesage_active_repo_id", repo.id);
+        }
 
         const graph = await api.getDependencyGraph(repoId);
         setGraphData(graph);

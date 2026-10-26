@@ -9,6 +9,7 @@ Tests the entire lifecycle:
 6. RAG Evaluation benchmarking (Recall@5 & MRR calculation)
 """
 import os
+import uuid
 import pytest
 from sqlalchemy import select
 from app.db.session import init_db, AsyncSessionLocal
@@ -34,7 +35,7 @@ async def test_full_codesage_pipeline_lifecycle():
         # 1. Create User and Workspace
         user = User(
             name="E2E Test Engineer",
-            email="e2e_tester@codesage.dev",
+            email=f"e2e_{uuid.uuid4().hex[:8]}@codesage.dev",
             password_hash="fakehash"
         )
         session.add(user)

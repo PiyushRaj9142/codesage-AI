@@ -40,6 +40,9 @@ export default function ImpactAnalysisPage({ params }: { params: Promise<{ id: s
       try {
         const repo = await api.getRepository(repoId);
         setRepository(repo);
+        if (typeof window !== "undefined" && repo?.id) {
+          localStorage.setItem("codesage_active_repo_id", repo.id);
+        }
 
         const fileList = await api.getRepositoryFiles(repoId);
         setFiles(fileList);

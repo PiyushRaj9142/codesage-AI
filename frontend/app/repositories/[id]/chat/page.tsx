@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, use } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   MessageSquare,
@@ -55,6 +56,9 @@ export default function RepositoryChatPage({ params }: { params: Promise<{ id: s
       try {
         const repo = await api.getRepository(repoId);
         setRepository(repo);
+        if (typeof window !== "undefined" && repo?.id) {
+          localStorage.setItem("codesage_active_repo_id", repo.id);
+        }
 
         const convList = await api.getConversations(repoId);
         setConversations(convList);
@@ -197,6 +201,30 @@ export default function RepositoryChatPage({ params }: { params: Promise<{ id: s
 
   const isIndexing = repository?.status && repository.status !== "ready";
 
+  if (!loading && !repository) {
+    return (
+      <AppShell>
+        <div className="h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-8 select-none max-w-md mx-auto text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#FEE2E2] text-[#B91C1C] flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-[17px] font-semibold text-[#172033]">Repository Not Found</h2>
+            <p className="text-[13px] text-[#64748B] mt-1.5 leading-relaxed">
+              The requested repository could not be found or has not been indexed yet.
+            </p>
+          </div>
+          <Link
+            href="/repositories"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[13px] font-medium shadow-xs"
+          >
+            <span>Return to Repositories</span>
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell currentRepo={repository}>
       <div className="h-[calc(100vh-4rem)] flex overflow-hidden">
@@ -263,13 +291,13 @@ export default function RepositoryChatPage({ params }: { params: Promise<{ id: s
                     onClick={() => handleSend("Where is authentication or token verification implemented?")}
                     className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#2563EB] text-[13px] text-[#172033] text-left transition-colors"
                   >
-                    "Where is authentication or token verification implemented?"
+                    &ldquo;Where is authentication or token verification implemented?&rdquo;
                   </button>
                   <button
                     onClick={() => handleSend("Explain the overall architecture and main entrypoints.")}
                     className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#2563EB] text-[13px] text-[#172033] text-left transition-colors"
                   >
-                    "Explain the overall architecture and main entrypoints."
+                    &ldquo;Explain the overall architecture and main entrypoints.&rdquo;
                   </button>
                 </div>
               </div>

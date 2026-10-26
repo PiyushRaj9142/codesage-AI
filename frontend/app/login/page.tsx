@@ -3,118 +3,213 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Code2, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { Code2, ArrowRight, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
 import { setAuthTokens } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("codesage_remembered_email") || "";
+    }
+    return "";
+  });
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    if (typeof window !== "undefined") {
+      return Boolean(localStorage.getItem("codesage_remembered_email"));
+    }
+    return false;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate submission
+
     setError(null);
     setLoading(true);
 
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(email.trim(), password);
       setAuthTokens(res.access_token, res.refresh_token, res.user);
+
+      // Handle remember me preference
+      if (typeof window !== "undefined") {
+        if (rememberMe) {
+          localStorage.setItem("codesage_remembered_email", email.trim());
+        } else {
+          localStorage.removeItem("codesage_remembered_email");
+        }
+      }
+
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in. Please verify your credentials.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("fetch") || message.includes("Failed to fetch") || message.includes("NetworkError")) {
+        setError("Unable to connect to the CodeSage AI backend. Please verify the backend is running on http://localhost:8000.");
+      } else {
+        setError(message || "Invalid email or password. Please verify your credentials.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center px-4 select-none">
-      <div className="w-full max-w-md bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-xs">
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center text-white shadow-sm">
-            <Code2 className="w-6 h-6" />
+    <main className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center px-4 py-12 select-none">
+      <div className="w-full max-w-[440px]">
+        {/* Card */}
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 sm:p-9 shadow-sm">
+          {/* Header & Logo */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center text-white shadow-xs">
+              <Code2 className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[16px] font-semibold text-[#172033] tracking-tight block">
+                CodeSage AI
+              </span>
+              <span className="text-[12px] text-[#64748B] block">
+                Repository-Aware Engineering Assistant
+              </span>
+            </div>
           </div>
-          <div>
-            <h1 className="text-[18px] font-semibold text-[#172033] tracking-tight">
-              CodeSage AI
+
+          <div className="mb-6">
+            <h1 className="text-[22px] font-semibold text-[#172033] tracking-tight">
+              Welcome back
             </h1>
-            <p className="text-[12px] text-[#64748B]">
-              Repository-Aware Software Engineering Assistant
+            <p className="text-[13.5px] text-[#64748B] mt-1 leading-relaxed">
+              Sign in to continue exploring your codebase.
             </p>
           </div>
+
+          {/* Error Banner */}
+          {error && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mb-5 p-3.5 rounded-xl bg-[#FEE2E2] border border-[#FECACA] flex items-start gap-2.5 text-[#B91C1C] text-[13px] leading-relaxed"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="flex-1">{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="work-email"
+                className="block text-[13px] font-medium text-[#172033] mb-1.5"
+              >
+                Work email
+              </label>
+              <input
+                id="work-email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="developer@company.com"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-[14px] text-[#172033] placeholder-[#94A3B8] hover:border-[#CBD5E1] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE] transition-all"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-[13px] font-medium text-[#172033] mb-1.5"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 pr-10 bg-white border border-[#E2E8F0] rounded-xl text-[14px] text-[#172033] placeholder-[#94A3B8] hover:border-[#CBD5E1] focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE] transition-all"
+                />
+                <button
+                  type="button"
+                  id="toggle-password-visibility"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#64748B] hover:text-[#172033] focus:outline-none transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#2563EB] border-[#CBD5E1] focus:ring-[#2563EB] focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-[13px] text-[#64748B]">Remember me</span>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              id="signin-button"
+              disabled={loading}
+              className="w-full mt-2 py-2.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-[14px] font-medium flex items-center justify-center gap-2 transition-colors disabled:bg-[#93C5FD] disabled:cursor-not-allowed shadow-xs cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign in</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer Register Link */}
+          <div className="mt-7 pt-6 border-t border-[#E2E8F0] text-center text-[13px] text-[#64748B]">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              id="create-account-link"
+              className="text-[#2563EB] font-medium hover:underline focus:outline-none focus:underline"
+            >
+              Create an account
+            </Link>
+          </div>
         </div>
 
-        <h2 className="text-[20px] font-semibold text-[#172033] mb-1">Sign in to your account</h2>
-        <p className="text-[13px] text-[#64748B] mb-6">
-          Enter your email and credentials to access your codebase intelligence.
+        {/* Small subtle branding footnote */}
+        <p className="text-center text-[11.5px] text-[#94A3B8] mt-6">
+          CodeSage AI &bull; Grounded Code Intelligence with Exact Line Citations
         </p>
-
-        {error && (
-          <div className="mb-5 p-3 rounded-xl bg-[#FEE2E2] border border-[#FECACA] flex items-start gap-2.5 text-[#B91C1C] text-[13px]">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[13px] font-medium text-[#172033] mb-1.5">
-              Work Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="developer@company.com"
-              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-[14px] text-[#172033] placeholder-[#94A3B8] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[13px] font-medium text-[#172033] mb-1.5">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-xl text-[14px] text-[#172033] placeholder-[#94A3B8] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 py-2.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[14px] font-medium flex items-center justify-center gap-2 transition-colors disabled:bg-[#93C5FD] shadow-xs"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Signing in...</span>
-              </>
-            ) : (
-              <>
-                <span>Sign in</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 pt-6 border-t border-[#E2E8F0] text-center text-[13px] text-[#64748B]">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-[#2563EB] font-medium hover:underline">
-            Create an account
-          </Link>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
